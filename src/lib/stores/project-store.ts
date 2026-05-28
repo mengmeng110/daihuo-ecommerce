@@ -20,7 +20,7 @@ export interface Character {
 
 // ==================== 项目 ====================
 
-export type Step = "upload" | "script" | "assets" | "video" | "export";
+export type Step = "upload" | "script" | "storyboard" | "assets" | "video" | "export";
 
 export interface Project {
   id: string;

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useRef, useCallback, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { LuArrowLeft, LuUpload, LuX, LuCircleAlert, LuZap, LuUser, LuUserX, LuBox, LuLayoutGrid, LuEye, LuVideo, LuBookmark } from "react-icons/lu";
 import { useCharacterStore } from "@/lib/stores/project-store";
 import { useTemplateStore } from "@/lib/stores/template-store";
@@ -48,6 +48,7 @@ const styleOptions = [
 
 export default function NewProjectPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   // 检查 LLM API 配置状态
   const { llm, providers } = useSettingsStore();
@@ -80,6 +81,28 @@ export default function NewProjectPage() {
   // 模板库
   const { templates, incrementUseCount } = useTemplateStore();
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+
+  // 从 URL 参数初始化模板数据（从模板中心跳转过来时）
+  useEffect(() => {
+    const templateId = searchParams.get("templateId");
+    const templateName = searchParams.get("templateName");
+    const paramCategory = searchParams.get("category");
+    const paramStyle = searchParams.get("scriptStyle");
+    const paramDuration = searchParams.get("duration");
+
+    if (templateId) {
+      setSelectedTemplateId(templateId);
+    }
+    if (paramCategory) {
+      setCategory(paramCategory);
+    }
+    if (paramStyle) {
+      setScriptStyle(paramStyle);
+    }
+    if (paramDuration) {
+      setDuration(paramDuration);
+    }
+  }, [searchParams]);
 
   // 人物库
   const { characters } = useCharacterStore();

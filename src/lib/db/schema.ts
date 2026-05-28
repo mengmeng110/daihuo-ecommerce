@@ -136,6 +136,15 @@ export const characters = sqliteTable("characters", {
   updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
 });
 
+// 数据分析事件表
+export const analyticsEvents = sqliteTable("analytics_events", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  eventType: text("event_type", { enum: ["video_generate", "export", "share"] }).notNull(),
+  projectId: text("project_id").references(() => projects.id, { onDelete: "set null" }),
+  metadata: text("metadata", { mode: "json" }).$type<Record<string, unknown>>(),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+
 // 设置表
 export const settings = sqliteTable("settings", {
   key: text("key").primaryKey(),

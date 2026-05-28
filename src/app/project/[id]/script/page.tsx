@@ -215,12 +215,20 @@ export default function ScriptPage() {
                   <TabsTrigger value="timeline">分镜时间线</TabsTrigger>
                   <TabsTrigger value="text">文案编辑</TabsTrigger>
                 </TabsList>
-                <Link href={`/project/${id}/assets`}>
-                  <Button className="brand-gradient text-white text-sm">
-                    下一步：生成素材
-                    <LuArrowRight className="w-4 h-4 ml-1" />
-                  </Button>
-                </Link>
+                <div className="flex items-center gap-2">
+                  <Link href={`/project/${id}/storyboard`}>
+                    <Button variant="outline" size="sm">
+                      分镜编辑器
+                      <LuArrowRight className="w-4 h-4 ml-1" />
+                    </Button>
+                  </Link>
+                  <Link href={`/project/${id}/assets`}>
+                    <Button className="brand-gradient text-white text-sm">
+                      下一步：生成素材
+                      <LuArrowRight className="w-4 h-4 ml-1" />
+                    </Button>
+                  </Link>
+                </div>
               </div>
 
               <TabsContent value="timeline" className="mt-0">
