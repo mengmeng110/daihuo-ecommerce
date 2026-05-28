@@ -20,8 +20,17 @@ export interface Template {
   thumbnail: string;
   previewVideo?: string;
   useCount: number;
+  rating?: number;
   tags: string[];
   shots: TemplateShot[];
+  /** 推荐设置 */
+  recommendedSettings?: {
+    aspectRatio?: string;
+    resolution?: string;
+    fps?: number;
+    bgmStyle?: string;
+    textStyle?: string;
+  };
 }
 
 /** 品类分类配置 */

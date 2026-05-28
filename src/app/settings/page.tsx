@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ const AI_PROVIDERS = [
     name: "Atlas Cloud",
     description: "高质量图像和视频生成平台，支持多种 AI 模型",
     tip: "推荐首选，模型最全最便宜",
+    baseUrl: "https://api.atlascloud.ai/v1",
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="10" />
@@ -42,6 +43,7 @@ const AI_PROVIDERS = [
     name: "fal.ai",
     description: "快速推理平台，支持 Flux、SDXL 等主流图像生成模型",
     tip: "支持 Kling 3.0、Veo 3 等最新模型",
+    baseUrl: "https://fal.run",
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
@@ -54,6 +56,7 @@ const AI_PROVIDERS = [
     name: "火山引擎",
     description: "字节跳动旗下云服务，提供豆包大模型和视频生成能力",
     tip: "字节系模型 Seedance/Seedream，中文优化好",
+    baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
@@ -66,6 +69,7 @@ const AI_PROVIDERS = [
     name: "阿里百炼",
     description: "阿里云大模型服务平台，支持通义系列模型和图像生成",
     tip: "万相系列，商品图生视频效果佳",
+    baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1",
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
@@ -80,6 +84,7 @@ const AI_PROVIDERS = [
     name: "硅基流动",
     description: "国产 AI 推理平台，提供高性价比的模型推理服务",
     tip: "国产高性价比推理平台",
+    baseUrl: "https://api.siliconflow.cn/v1",
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <rect x="4" y="4" width="16" height="16" rx="2" />
@@ -127,7 +132,6 @@ function PasswordInput({
         className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
       >
         {visible ? (
-          // 隐藏图标
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
             <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
@@ -135,7 +139,6 @@ function PasswordInput({
             <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
           </svg>
         ) : (
-          // 显示图标
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
             <circle cx="12" cy="12" r="3" />
@@ -173,6 +176,26 @@ function Toggle({
   );
 }
 
+// 连接状态指示组件
+function StatusDot({ status }: { status: "idle" | "testing" | "success" | "error" }) {
+  if (status === "idle") return null;
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+        status === "testing"
+          ? "bg-blue-500/15 text-blue-400"
+          : status === "success"
+          ? "bg-emerald-500/15 text-emerald-400"
+          : "bg-red-500/15 text-red-400"
+      }`}
+    >
+      {status === "testing" && "⏳ 测试中..."}
+      {status === "success" && "✓ 连接成功"}
+      {status === "error" && "✗ 连接失败"}
+    </span>
+  );
+}
+
 export default function SettingsPage() {
   // 从 store 读取设置
   const {
@@ -184,6 +207,9 @@ export default function SettingsPage() {
     setLLM,
     setDefaultResolution,
     setDefaultAspectRatio,
+    resetToDefaults,
+    importSettings,
+    exportSettings,
   } = useSettingsStore();
 
   // 保存时的提示状态
@@ -191,6 +217,51 @@ export default function SettingsPage() {
 
   // LLM 连接测试状态
   const [llmTestStatus, setLlmTestStatus] = useState<"idle" | "testing" | "success" | "error">("idle");
+
+  // 各平台 API Key 测试状态
+  const [providerTestStatus, setProviderTestStatus] = useState<Record<string, "idle" | "testing" | "success" | "error">>({});
+
+  // 模型列表状态
+  const [llmModels, setLlmModels] = useState<string[]>([]);
+  const [llmModelsLoading, setLlmModelsLoading] = useState(false);
+  const [llmModelsError, setLlmModelsError] = useState("");
+  const [showModelDropdown, setShowModelDropdown] = useState<"text" | "vision" | null>(null);
+
+  // 系统信息
+  const [sysInfo, setSysInfo] = useState<{
+    appVersion: string;
+    nodeVersion: string;
+    ffmpegVersion: string;
+    platform: string;
+    arch: string;
+    uptime: number;
+  } | null>(null);
+  const [sysInfoLoading, setSysInfoLoading] = useState(false);
+
+  // 导入导出相关
+  const [importText, setImportText] = useState("");
+  const [importError, setImportError] = useState("");
+  const [showImportExport, setShowImportExport] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 获取系统信息
+  const fetchSystemInfo = async () => {
+    setSysInfoLoading(true);
+    try {
+      const res = await fetch("/api/system-info");
+      if (res.ok) {
+        setSysInfo(await res.json());
+      }
+    } catch {
+      // ignore
+    }
+    setSysInfoLoading(false);
+  };
+
+  useEffect(() => {
+    fetchSystemInfo();
+  }, []);
 
   // 测试 LLM 连接
   const testLLMConnection = async () => {
@@ -203,17 +274,131 @@ export default function SettingsPage() {
     } catch {
       setLlmTestStatus("error");
     }
-    setTimeout(() => setLlmTestStatus("idle"), 3000);
+    setTimeout(() => setLlmTestStatus("idle"), 5000);
+  };
+
+  // 测试单个 Provider 的 API Key
+  const testProviderConnection = async (providerKey: string) => {
+    const provider = providers[providerKey];
+    const platform = AI_PROVIDERS.find((p) => p.key === providerKey);
+    if (!provider?.apiKey || !platform) return;
+
+    setProviderTestStatus((s) => ({ ...s, [providerKey]: "testing" }));
+    try {
+      // 尝试用 /models 端点验证（大部分 OpenAI 兼容 API 都支持）
+      const baseUrl = platform.baseUrl;
+      const res = await fetch(baseUrl + "/models", {
+        headers: { Authorization: `Bearer ${provider.apiKey}` },
+      });
+      setProviderTestStatus((s) => ({
+        ...s,
+        [providerKey]: res.ok ? "success" : "error",
+      }));
+    } catch {
+      setProviderTestStatus((s) => ({ ...s, [providerKey]: "error" }));
+    }
+    setTimeout(() => setProviderTestStatus((s) => ({ ...s, [providerKey]: "idle" })), 5000);
+  };
+
+  // 获取 LLM 可用模型列表
+  const fetchLLMModels = async () => {
+    if (!llm.baseUrl || !llm.apiKey) return;
+    setLlmModelsLoading(true);
+    setLlmModelsError("");
+    setLlmModels([]);
+    try {
+      const res = await fetch(llm.baseUrl + "/models", {
+        headers: { Authorization: `Bearer ${llm.apiKey}` },
+      });
+      if (!res.ok) {
+        setLlmModelsError(`请求失败 (${res.status})`);
+        return;
+      }
+      const data = await res.json();
+      const models = (data.data || data.models || []).map((m: { id?: string } | string) =>
+        typeof m === "string" ? m : m.id || ""
+      ).filter(Boolean);
+      setLlmModels(models);
+      if (models.length === 0) {
+        setLlmModelsError("未返回模型列表");
+      }
+    } catch {
+      setLlmModelsError("连接失败");
+    }
+    setLlmModelsLoading(false);
   };
 
   // 计算 AI 平台配置状态
   const hasAnyProvider = Object.values(providers).some(p => p.enabled && p.apiKey);
   const enabledCount = Object.values(providers).filter(p => p.enabled && p.apiKey).length;
 
-  // 处理保存（zustand persist 会自动保存，这里主要做 UI 反馈）
+  // 处理保存
   const handleSave = () => {
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+  };
+
+  // 导出配置
+  const handleExport = () => {
+    const data = exportSettings();
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `daihuo-settings-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // 导入配置（从文件）
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string;
+      doImport(text);
+    };
+    reader.readAsText(file);
+    // 重置 input
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  // 导入配置（从文本）
+  const doImport = (text: string) => {
+    setImportError("");
+    try {
+      const data = JSON.parse(text);
+      // 简单校验
+      if (typeof data !== "object" || data === null) {
+        setImportError("无效的 JSON 格式");
+        return;
+      }
+      importSettings(data);
+      setImportText("");
+      setShowImportExport(false);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch {
+      setImportError("JSON 解析失败，请检查格式");
+    }
+  };
+
+  // 重置为默认配置
+  const handleReset = () => {
+    resetToDefaults();
+    setShowResetConfirm(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  // 格式化运行时间
+  const formatUptime = (seconds: number) => {
+    if (seconds < 60) return `${seconds}秒`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}分钟`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}小时 ${Math.floor((seconds % 3600) / 60)}分钟`;
+    return `${Math.floor(seconds / 86400)}天 ${Math.floor((seconds % 86400) / 3600)}小时`;
   };
 
   return (
@@ -283,6 +468,13 @@ export default function SettingsPage() {
               <LuPalette className="w-3.5 h-3.5" />
               品牌设置
             </TabsTrigger>
+            <TabsTrigger value={4}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+              </svg>
+              系统 & 高级
+            </TabsTrigger>
           </TabsList>
 
           {/* Tab 1: AI 平台配置 */}
@@ -293,6 +485,7 @@ export default function SettingsPage() {
                   enabled: false,
                   apiKey: "",
                 };
+                const testStatus = providerTestStatus[platform.key] ?? "idle";
 
                 return (
                   <Card key={platform.key} className="glass-card">
@@ -315,6 +508,7 @@ export default function SettingsPage() {
                                   已启用
                                 </span>
                               )}
+                              <StatusDot status={testStatus} />
                             </div>
                             <p className="text-xs text-muted-foreground leading-relaxed">
                               {platform.description}
@@ -335,21 +529,43 @@ export default function SettingsPage() {
                         />
                       </div>
 
-                      {/* API Key 输入 */}
+                      {/* API Key 输入 + 测试按钮 */}
                       <div className="mt-4">
                         <Label className="text-xs text-muted-foreground mb-1.5">
                           API Key
                         </Label>
-                        <PasswordInput
-                          value={provider.apiKey}
-                          onChange={(apiKey) =>
-                            setProvider(platform.key, {
-                              ...provider,
-                              apiKey,
-                            })
-                          }
-                          placeholder={`输入 ${platform.name} 的 API Key`}
-                        />
+                        <div className="flex gap-2">
+                          <div className="flex-1">
+                            <PasswordInput
+                              value={provider.apiKey}
+                              onChange={(apiKey) =>
+                                setProvider(platform.key, {
+                                  ...provider,
+                                  apiKey,
+                                })
+                              }
+                              placeholder={`输入 ${platform.name} 的 API Key`}
+                            />
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => testProviderConnection(platform.key)}
+                            disabled={!provider.apiKey || testStatus === "testing"}
+                            className={`shrink-0 text-xs ${
+                              testStatus === "success"
+                                ? "text-emerald-600 border-emerald-300"
+                                : testStatus === "error"
+                                ? "text-destructive border-red-300"
+                                : ""
+                            }`}
+                          >
+                            {testStatus === "testing" ? "测试中..."
+                             : testStatus === "success" ? "✓ 有效"
+                             : testStatus === "error" ? "✗ 无效"
+                             : "验证 Key"}
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -414,37 +630,99 @@ export default function SettingsPage() {
                       />
                     </div>
 
-                    {/* API Key */}
+                    {/* API Key + 测试 */}
                     <div className="space-y-1.5">
                       <Label className="text-xs text-muted-foreground">
                         API Key
                       </Label>
-                      <PasswordInput
-                        value={llm.apiKey}
-                        onChange={(apiKey) => setLLM({ ...llm, apiKey })}
-                        placeholder="输入 LLM API Key"
-                      />
+                      <div className="flex gap-2">
+                        <div className="flex-1">
+                          <PasswordInput
+                            value={llm.apiKey}
+                            onChange={(apiKey) => setLLM({ ...llm, apiKey })}
+                            placeholder="输入 LLM API Key"
+                          />
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={testLLMConnection}
+                          disabled={!llm.apiKey || !llm.baseUrl || llmTestStatus === "testing"}
+                          className={`shrink-0 text-xs ${
+                            llmTestStatus === "success"
+                              ? "text-emerald-600 border-emerald-300"
+                              : llmTestStatus === "error"
+                              ? "text-destructive border-red-300"
+                              : ""
+                          }`}
+                        >
+                          {llmTestStatus === "testing" ? "测试中..."
+                           : llmTestStatus === "success" ? "✓ 连接成功"
+                           : llmTestStatus === "error" ? "✗ 连接失败"
+                           : "测试连接"}
+                        </Button>
+                      </div>
                     </div>
 
-                    {/* 模型名称 */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
+                    {/* 获取模型列表 */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
                         <Label className="text-xs text-muted-foreground">
                           文本模型
                         </Label>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2 text-[11px] text-primary"
+                          onClick={fetchLLMModels}
+                          disabled={!llm.apiKey || !llm.baseUrl || llmModelsLoading}
+                        >
+                          {llmModelsLoading ? "获取中..." : "🔄 获取模型列表"}
+                        </Button>
+                      </div>
+                      <div className="relative">
                         <Input
                           value={llm.model}
-                          onChange={(e) =>
-                            setLLM({ ...llm, model: e.target.value })
-                          }
+                          onChange={(e) => setLLM({ ...llm, model: e.target.value })}
+                          onFocus={() => llmModels.length > 0 && setShowModelDropdown("text")}
+                          onBlur={() => setTimeout(() => setShowModelDropdown(null), 200)}
                           placeholder="gpt-4o"
                           className="font-mono text-xs"
                         />
+                        {showModelDropdown === "text" && llmModels.length > 0 && (
+                          <div className="absolute z-50 top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg border border-border bg-background shadow-lg">
+                            {llmModels
+                              .filter((m) => !llm.model || m.toLowerCase().includes(llm.model.toLowerCase()))
+                              .map((model) => (
+                                <button
+                                  key={model}
+                                  className="w-full text-left px-3 py-1.5 text-xs font-mono hover:bg-accent transition-colors"
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    setLLM({ ...llm, model });
+                                    setShowModelDropdown(null);
+                                  }}
+                                >
+                                  {model}
+                                </button>
+                              ))}
+                          </div>
+                        )}
                       </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs text-muted-foreground">
-                          视觉模型
-                        </Label>
+                      {llmModelsError && (
+                        <p className="text-[11px] text-destructive">{llmModelsError}</p>
+                      )}
+                      {llmModels.length > 0 && !llmModelsError && (
+                        <p className="text-[11px] text-emerald-600">找到 {llmModels.length} 个模型，点击输入框可选择</p>
+                      )}
+                    </div>
+
+                    {/* 视觉模型（同样支持选择） */}
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground">
+                        视觉模型
+                      </Label>
+                      <div className="relative">
                         <Input
                           value={llm.visionModel ?? ""}
                           onChange={(e) =>
@@ -453,35 +731,31 @@ export default function SettingsPage() {
                               visionModel: e.target.value || undefined,
                             })
                           }
+                          onFocus={() => llmModels.length > 0 && setShowModelDropdown("vision")}
+                          onBlur={() => setTimeout(() => setShowModelDropdown(null), 200)}
                           placeholder="gpt-4o"
                           className="font-mono text-xs"
                         />
+                        {showModelDropdown === "vision" && llmModels.length > 0 && (
+                          <div className="absolute z-50 top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg border border-border bg-background shadow-lg">
+                            {llmModels
+                              .filter((m) => !(llm.visionModel) || m.toLowerCase().includes((llm.visionModel || "").toLowerCase()))
+                              .map((model) => (
+                                <button
+                                  key={model}
+                                  className="w-full text-left px-3 py-1.5 text-xs font-mono hover:bg-accent transition-colors"
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    setLLM({ ...llm, visionModel: model });
+                                    setShowModelDropdown(null);
+                                  }}
+                                >
+                                  {model}
+                                </button>
+                              ))}
+                          </div>
+                        )}
                       </div>
-                    </div>
-
-                    {/* 测试连接按钮 */}
-                    <div className="pt-3 mt-3 border-t border-border/50">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={testLLMConnection}
-                        disabled={!llm.apiKey || !llm.baseUrl || llmTestStatus === "testing"}
-                        className={`text-xs ${
-                          llmTestStatus === "success"
-                            ? "text-emerald-600"
-                            : llmTestStatus === "error"
-                            ? "text-destructive"
-                            : ""
-                        }`}
-                      >
-                        {llmTestStatus === "testing" ? "测试中..."
-                         : llmTestStatus === "success" ? "连接成功 ✓"
-                         : llmTestStatus === "error" ? "连接失败 ✗"
-                         : "测试连接"}
-                      </Button>
-                      {!llm.apiKey && (
-                        <span className="text-xs text-muted-foreground ml-2">请先填写 API Key</span>
-                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -552,13 +826,173 @@ export default function SettingsPage() {
               </Card>
             </div>
           </TabsContent>
+
           {/* Tab 3: 出镜人物管理 */}
           <TabsContent value={2}>
             <CharacterManager />
           </TabsContent>
+
           {/* Tab 4: 品牌设置 */}
           <TabsContent value={3}>
             <BrandSettings />
+          </TabsContent>
+
+          {/* Tab 5: 系统 & 高级 */}
+          <TabsContent value={4}>
+            <div className="space-y-6">
+              {/* 系统信息 */}
+              <Card className="glass-card">
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-slate-500 to-zinc-600 text-white">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                          <line x1="8" y1="21" x2="16" y2="21" />
+                          <line x1="12" y1="17" x2="12" y2="21" />
+                        </svg>
+                      </div>
+                      <h3 className="font-semibold text-sm">系统信息</h3>
+                    </div>
+                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={fetchSystemInfo} disabled={sysInfoLoading}>
+                      {sysInfoLoading ? "刷新中..." : "🔄 刷新"}
+                    </Button>
+                  </div>
+
+                  {sysInfo ? (
+                    <div className="grid grid-cols-2 gap-3">
+                      <InfoRow label="应用版本" value={`v${sysInfo.appVersion}`} />
+                      <InfoRow label="Node.js" value={sysInfo.nodeVersion} />
+                      <InfoRow label="FFmpeg" value={sysInfo.ffmpegVersion} />
+                      <InfoRow label="运行平台" value={`${sysInfo.platform} / ${sysInfo.arch}`} />
+                      <InfoRow label="服务运行时间" value={formatUptime(sysInfo.uptime)} />
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      {sysInfoLoading ? "加载中..." : "无法获取系统信息"}
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* 配置导入/导出 */}
+              <Card className="glass-card">
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-teal-500 to-cyan-600 text-white">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                          <polyline points="7 10 12 15 17 10" />
+                          <line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                      </div>
+                      <h3 className="font-semibold text-sm">配置导入 / 导出</h3>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground mb-4">
+                    导出当前配置为 JSON 文件，或从 JSON 文件导入配置。方便在不同设备间同步设置。
+                  </p>
+
+                  <div className="flex flex-wrap gap-3">
+                    <Button variant="outline" size="sm" onClick={handleExport} className="text-xs">
+                      📤 导出配置 (JSON)
+                    </Button>
+                    <label>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".json"
+                        className="hidden"
+                        onChange={handleImportFile}
+                      />
+                      <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-accent transition-colors cursor-pointer">
+                        📥 从文件导入
+                      </span>
+                    </label>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs text-muted-foreground"
+                      onClick={() => setShowImportExport(!showImportExport)}
+                    >
+                      {showImportExport ? "收起" : "📋 粘贴 JSON 导入"}
+                    </Button>
+                  </div>
+
+                  {showImportExport && (
+                    <div className="mt-4 space-y-2">
+                      <Textarea
+                        value={importText}
+                        onChange={(e) => setImportText(e.target.value)}
+                        placeholder='粘贴配置 JSON...'
+                        rows={6}
+                        className="font-mono text-xs resize-none"
+                      />
+                      {importError && (
+                        <p className="text-xs text-destructive">{importError}</p>
+                      )}
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          className="text-xs"
+                          onClick={() => doImport(importText)}
+                          disabled={!importText.trim()}
+                        >
+                          确认导入
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs"
+                          onClick={() => { setImportText(""); setImportError(""); setShowImportExport(false); }}
+                        >
+                          取消
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* 重置为默认配置 */}
+              <Card className="glass-card border-destructive/20">
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-red-500 to-rose-600 text-white">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="1 4 1 10 7 10" />
+                          <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+                        </svg>
+                      </div>
+                      <h3 className="font-semibold text-sm">重置配置</h3>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground mb-4">
+                    将所有设置（AI 平台、LLM、默认参数）恢复为初始默认值。此操作不可撤销。
+                  </p>
+
+                  {showResetConfirm ? (
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+                      <p className="text-xs text-destructive font-medium flex-1">⚠️ 确认重置？所有配置将被清除！</p>
+                      <Button variant="destructive" size="sm" className="text-xs" onClick={handleReset}>
+                        确认重置
+                      </Button>
+                      <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowResetConfirm(false)}>
+                        取消
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button variant="outline" size="sm" className="text-xs text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setShowResetConfirm(true)}>
+                      🔄 重置为默认配置
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
 
@@ -595,6 +1029,17 @@ export default function SettingsPage() {
           </div>
         </div>
       </main>
+    </div>
+  );
+}
+
+// ==================== 信息行组件 ====================
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/30 border border-border/30">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="text-xs font-mono font-medium">{value}</span>
     </div>
   );
 }
@@ -745,7 +1190,6 @@ function CharacterManager() {
 
 // ==================== 品牌设置组件 ====================
 
-// 水印位置选项
 const WATERMARK_POSITIONS = [
   { value: "top-left" as const, label: "左上" },
   { value: "top-right" as const, label: "右上" },
@@ -772,7 +1216,6 @@ function BrandSettings() {
           </div>
 
           <div className="grid gap-4">
-            {/* 店铺名称 */}
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">店铺名称</Label>
               <Input
@@ -783,17 +1226,12 @@ function BrandSettings() {
               />
             </div>
 
-            {/* Logo 上传区 */}
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Logo</Label>
               <div className="flex items-center gap-4">
                 <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border-2 border-dashed border-border bg-muted/30 overflow-hidden">
                   {brand.logoUrl ? (
-                    <img
-                      src={brand.logoUrl}
-                      alt="品牌 Logo"
-                      className="h-full w-full object-contain"
-                    />
+                    <img src={brand.logoUrl} alt="品牌 Logo" className="h-full w-full object-contain" />
                   ) : (
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground/50">
                       <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
@@ -811,7 +1249,6 @@ function BrandSettings() {
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) {
-                          // 将选择的图片转为 Data URL 存储
                           const reader = new FileReader();
                           reader.onload = (ev) => {
                             updateBrand({ logoUrl: ev.target?.result as string });
@@ -826,10 +1263,7 @@ function BrandSettings() {
                     </span>
                   </label>
                   {brand.logoUrl && (
-                    <button
-                      onClick={() => updateBrand({ logoUrl: undefined })}
-                      className="text-xs text-destructive hover:underline text-left"
-                    >
+                    <button onClick={() => updateBrand({ logoUrl: undefined })} className="text-xs text-destructive hover:underline text-left">
                       移除
                     </button>
                   )}
@@ -851,53 +1285,25 @@ function BrandSettings() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* 主色 */}
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">主色</Label>
               <div className="flex items-center gap-2">
                 <div className="relative">
-                  <input
-                    type="color"
-                    value={brand.primaryColor}
-                    onChange={(e) => updateBrand({ primaryColor: e.target.value })}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  />
-                  <div
-                    className="h-9 w-9 rounded-lg border border-border shadow-sm"
-                    style={{ backgroundColor: brand.primaryColor }}
-                  />
+                  <input type="color" value={brand.primaryColor} onChange={(e) => updateBrand({ primaryColor: e.target.value })} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                  <div className="h-9 w-9 rounded-lg border border-border shadow-sm" style={{ backgroundColor: brand.primaryColor }} />
                 </div>
-                <Input
-                  value={brand.primaryColor}
-                  onChange={(e) => updateBrand({ primaryColor: e.target.value })}
-                  className="font-mono text-xs uppercase flex-1"
-                  maxLength={7}
-                />
+                <Input value={brand.primaryColor} onChange={(e) => updateBrand({ primaryColor: e.target.value })} className="font-mono text-xs uppercase flex-1" maxLength={7} />
               </div>
             </div>
 
-            {/* 辅色 */}
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">辅色</Label>
               <div className="flex items-center gap-2">
                 <div className="relative">
-                  <input
-                    type="color"
-                    value={brand.secondaryColor}
-                    onChange={(e) => updateBrand({ secondaryColor: e.target.value })}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  />
-                  <div
-                    className="h-9 w-9 rounded-lg border border-border shadow-sm"
-                    style={{ backgroundColor: brand.secondaryColor }}
-                  />
+                  <input type="color" value={brand.secondaryColor} onChange={(e) => updateBrand({ secondaryColor: e.target.value })} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                  <div className="h-9 w-9 rounded-lg border border-border shadow-sm" style={{ backgroundColor: brand.secondaryColor }} />
                 </div>
-                <Input
-                  value={brand.secondaryColor}
-                  onChange={(e) => updateBrand({ secondaryColor: e.target.value })}
-                  className="font-mono text-xs uppercase flex-1"
-                  maxLength={7}
-                />
+                <Input value={brand.secondaryColor} onChange={(e) => updateBrand({ secondaryColor: e.target.value })} className="font-mono text-xs uppercase flex-1" maxLength={7} />
               </div>
             </div>
           </div>
@@ -916,15 +1322,11 @@ function BrandSettings() {
               </div>
               <h3 className="font-semibold text-sm">水印设置</h3>
             </div>
-            <Toggle
-              checked={brand.watermark.enabled}
-              onChange={(enabled) => updateWatermark({ enabled })}
-            />
+            <Toggle checked={brand.watermark.enabled} onChange={(enabled) => updateWatermark({ enabled })} />
           </div>
 
           {brand.watermark.enabled && (
             <div className="space-y-4 pt-2">
-              {/* 水印位置 */}
               <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">水印位置</Label>
                 <div className="grid grid-cols-4 gap-2">
@@ -944,7 +1346,6 @@ function BrandSettings() {
                 </div>
               </div>
 
-              {/* 透明度 */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <Label className="text-xs text-muted-foreground">透明度</Label>
@@ -958,9 +1359,7 @@ function BrandSettings() {
                   max="100"
                   step="5"
                   value={Math.round(brand.watermark.opacity * 100)}
-                  onChange={(e) =>
-                    updateWatermark({ opacity: Number(e.target.value) / 100 })
-                  }
+                  onChange={(e) => updateWatermark({ opacity: Number(e.target.value) / 100 })}
                   className="w-full h-1.5 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
                 />
                 <div className="flex justify-between text-[10px] text-muted-foreground/50">
@@ -986,10 +1385,7 @@ function BrandSettings() {
               </div>
               <h3 className="font-semibold text-sm">片尾设置</h3>
             </div>
-            <Toggle
-              checked={brand.outroEnabled}
-              onChange={(enabled) => updateBrand({ outroEnabled: enabled })}
-            />
+            <Toggle checked={brand.outroEnabled} onChange={(enabled) => updateBrand({ outroEnabled: enabled })} />
           </div>
 
           {brand.outroEnabled && (

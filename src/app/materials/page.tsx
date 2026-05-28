@@ -37,6 +37,12 @@ import {
   Eye,
   Download,
   HardDrive,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  ZoomIn,
+  ZoomOut,
+  RotateCw,
 } from "lucide-react";
 import {
   useMaterialStore,
@@ -82,6 +88,40 @@ const typeLabelMap: Record<MaterialType, string> = {
 };
 
 // =========================================================
+// 排序相关
+// =========================================================
+
+type SortBy = "createdAt" | "size" | "name";
+type SortOrder = "asc" | "desc";
+
+const sortByLabelMap: Record<SortBy, string> = {
+  createdAt: "上传时间",
+  size: "文件大小",
+  name: "文件名称",
+};
+
+// 存储空间上限（字节），可根据需求调整
+const STORAGE_LIMIT = 100 * 1024 * 1024; // 100 MB
+
+function sortMaterials(
+  items: MaterialItem[],
+  sortBy: SortBy,
+  sortOrder: SortOrder
+): MaterialItem[] {
+  const sorted = [...items];
+  sorted.sort((a, b) => {
+    let cmp = 0;
+    if (sortBy === "name") {
+      cmp = a.name.localeCompare(b.name, "zh-CN");
+    } else {
+      cmp = a[sortBy] - b[sortBy];
+    }
+    return sortOrder === "asc" ? cmp : -cmp;
+  });
+  return sorted;
+}
+
+// =========================================================
 // 上传进度状态
 // =========================================================
 
@@ -125,10 +165,19 @@ export default function MaterialsPage() {
   const [previewMaterial, setPreviewMaterial] = useState<MaterialItem | null>(null);
   const [previewObjectUrl, setPreviewObjectUrl] = useState<string | null>(null);
 
+  // 排序状态
+  const [sortBy, setSortBy] = useState<SortBy>("createdAt");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
+
+  // 图片预览缩放状态
+  const [imageZoom, setImageZoom] = useState(1);
+  const [imageRotation, setImageRotation] = useState(0);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
 
-  const filteredMaterials = getFilteredMaterials();
+  const rawFiltered = getFilteredMaterials();
+  const filteredMaterials = sortMaterials(rawFiltered, sortBy, sortOrder);
   const selectedCount = selectedIds.size;
 
   // ---- 上传文件逻辑 ----
@@ -313,6 +362,8 @@ export default function MaterialsPage() {
   // ---- 预览 ----
   const handlePreview = useCallback(async (material: MaterialItem) => {
     setPreviewMaterial(material);
+    setImageZoom(1);
+    setImageRotation(0);
     const blob = await getBlobFromIndexedDB(material.id);
     if (blob) {
       const url = URL.createObjectURL(blob);
@@ -423,11 +474,27 @@ export default function MaterialsPage() {
 
           <div className="flex items-center gap-2">
             {/* 存储统计 */}
-            <div className="hidden md:flex items-center gap-1.5 mr-2 px-3 py-1.5 rounded-lg bg-muted text-xs text-muted-foreground">
-              <HardDrive className="w-3.5 h-3.5" />
-              <span>{stats.total} 个素材</span>
-              <span className="text-border">|</span>
-              <span>{formatFileSize(stats.totalSize)}</span>
+            <div className="hidden md:flex flex-col gap-1 mr-2 px-3 py-1.5 rounded-lg bg-muted text-xs text-muted-foreground">
+              <div className="flex items-center gap-1.5">
+                <HardDrive className="w-3.5 h-3.5" />
+                <span>{stats.total} 个素材</span>
+                <span className="text-border">|</span>
+                <span>{formatFileSize(stats.totalSize)} / {formatFileSize(STORAGE_LIMIT)}</span>
+              </div>
+              <div className="w-full h-1.5 rounded-full bg-border overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{
+                    width: `${Math.min((stats.totalSize / STORAGE_LIMIT) * 100, 100)}%`,
+                    backgroundColor:
+                      stats.totalSize / STORAGE_LIMIT > 0.9
+                        ? "hsl(var(--destructive))"
+                        : stats.totalSize / STORAGE_LIMIT > 0.7
+                          ? "hsl(38 92% 50%)"
+                          : "hsl(var(--primary))",
+                  }}
+                />
+              </div>
             </div>
 
             <Button onClick={() => fileInputRef.current?.click()}>
@@ -492,6 +559,29 @@ export default function MaterialsPage() {
                     <Music className="w-3.5 h-3.5" /> 音频 ({stats.audios})
                   </span>
                 </SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* 排序 */}
+            <Select
+              value={`${sortBy}-${sortOrder}`}
+              onValueChange={(v) => {
+                const [by, order] = v.split("-") as [SortBy, SortOrder];
+                setSortBy(by);
+                setSortOrder(order);
+              }}
+            >
+              <SelectTrigger className="w-[150px]">
+                <ArrowUpDown className="w-3.5 h-3.5 mr-1" />
+                <SelectValue placeholder="排序方式" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="createdAt-desc">最新上传</SelectItem>
+                <SelectItem value="createdAt-asc">最早上传</SelectItem>
+                <SelectItem value="size-desc">最大文件</SelectItem>
+                <SelectItem value="size-asc">最小文件</SelectItem>
+                <SelectItem value="name-asc">名称 A→Z</SelectItem>
+                <SelectItem value="name-desc">名称 Z→A</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -720,25 +810,76 @@ export default function MaterialsPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex items-center justify-center min-h-[300px] bg-muted/30 rounded-lg overflow-hidden">
+          <div className="flex items-center justify-center min-h-[300px] bg-muted/30 rounded-lg overflow-hidden relative">
             {!previewObjectUrl ? (
               <p className="text-muted-foreground">加载中...</p>
             ) : previewMaterial?.type === "image" ? (
-              <img
-                src={previewObjectUrl}
-                alt={previewMaterial.name}
-                className="max-h-[60vh] object-contain"
-              />
+              <>
+                <img
+                  src={previewObjectUrl}
+                  alt={previewMaterial.name}
+                  className="max-h-[60vh] object-contain transition-transform duration-200"
+                  style={{
+                    transform: `scale(${imageZoom}) rotate(${imageRotation}deg)`,
+                    cursor: imageZoom > 1 ? "grab" : "zoom-in",
+                  }}
+                  onClick={() => {
+                    if (imageZoom === 1) setImageZoom(2);
+                    else if (imageZoom === 2) setImageZoom(4);
+                    else setImageZoom(1);
+                  }}
+                  draggable={false}
+                />
+                {/* 图片缩放控制栏 */}
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-background/90 border rounded-lg px-2 py-1 shadow-sm">
+                  <button
+                    onClick={() => setImageZoom((z) => Math.max(0.25, z - 0.25))}
+                    className="w-7 h-7 rounded hover:bg-accent flex items-center justify-center"
+                    title="缩小"
+                  >
+                    <ZoomOut className="w-4 h-4" />
+                  </button>
+                  <span className="text-xs font-mono text-muted-foreground w-12 text-center">
+                    {Math.round(imageZoom * 100)}%
+                  </span>
+                  <button
+                    onClick={() => setImageZoom((z) => Math.min(8, z + 0.25))}
+                    className="w-7 h-7 rounded hover:bg-accent flex items-center justify-center"
+                    title="放大"
+                  >
+                    <ZoomIn className="w-4 h-4" />
+                  </button>
+                  <div className="w-px h-4 bg-border mx-0.5" />
+                  <button
+                    onClick={() => setImageRotation((r) => (r + 90) % 360)}
+                    className="w-7 h-7 rounded hover:bg-accent flex items-center justify-center"
+                    title="旋转"
+                  >
+                    <RotateCw className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      setImageZoom(1);
+                      setImageRotation(0);
+                    }}
+                    className="text-xs px-1.5 py-0.5 rounded hover:bg-accent text-muted-foreground"
+                    title="重置"
+                  >
+                    重置
+                  </button>
+                </div>
+              </>
             ) : previewMaterial?.type === "video" ? (
               <video
                 src={previewObjectUrl}
                 controls
+                autoPlay
                 className="max-h-[60vh] max-w-full"
               />
             ) : previewMaterial?.type === "audio" ? (
               <div className="flex flex-col items-center gap-4 p-8">
                 <Music className="w-20 h-20 text-muted-foreground" />
-                <audio src={previewObjectUrl} controls />
+                <audio src={previewObjectUrl} controls autoPlay />
               </div>
             ) : null}
           </div>
