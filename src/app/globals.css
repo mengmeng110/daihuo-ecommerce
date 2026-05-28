@@ -11,6 +11,12 @@
   --breakpoint-lg: 1024px;
   --breakpoint-xl: 1280px;
   --breakpoint-2xl: 1536px;
+
+  /* 安全区域适配（刘海屏 / 底部手势条） */
+  --sat: env(safe-area-inset-top, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
 }
 
 @theme inline {
@@ -89,6 +95,7 @@
 
 /* ==================== 亮色主题 ==================== */
 :root {
+  color-scheme: light;
   --background: #f8fafc;
   --foreground: #0f172a;
   --card: #ffffff;
@@ -128,6 +135,7 @@
 
 /* ==================== 暗色主题（优化对比度） ==================== */
 .dark {
+  color-scheme: dark;
   --background: #0b0918;
   --foreground: #f0eef9;
   --card: #161330;
@@ -170,14 +178,44 @@
     @apply border-border outline-ring/50;
   }
 
-  /* 平滑滚动 */
+  /* 平滑滚动 + 触摸优化 + 深色模式系统变量 */
   html {
     @apply font-sans;
     scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    overflow-x: hidden;
   }
 
   body {
     @apply bg-background text-foreground;
+    font-size: 16px;          /* 防止 iOS 输入框自动缩放 */
+    padding-top: var(--sat);   /* 刘海屏安全区域 */
+    padding-bottom: var(--sab);/* 底部手势条安全区域 */
+    padding-left: var(--sal);
+    padding-right: var(--sar);
+    overscroll-behavior: none; /* 防止过度滚动回弹 */
+  }
+
+  /* 移动端输入框 16px 防止 iOS 自动缩放 */
+  input,
+  textarea,
+  select,
+  [contenteditable="true"] {
+    font-size: max(16px, 1em);
+  }
+
+  /* 按钮 / 可点击元素最小 44x44 触摸区域 */
+  button,
+  [role="button"],
+  a,
+  input[type="submit"],
+  input[type="button"],
+  input[type="reset"] {
+    min-width: 44px;
+    min-height: 44px;
+    touch-action: manipulation;  /* 消除 300ms 延迟 */
   }
 
   /* focus-visible 无障碍样式 */
@@ -189,6 +227,19 @@
 
   :focus:not(:focus-visible) {
     outline: none;
+  }
+}
+
+/* ==================== 移动端底部导航栏适配 ==================== */
+@media (max-width: 767px) {
+  /* 为移动端页面内容添加底部padding，防止被MobileNav遮挡 */
+  .mobile-nav-padding {
+    padding-bottom: calc(4rem + var(--sab, 0px));
+  }
+  
+  /* 也可以使用pb-safe-bottom类 */
+  .pb-safe-bottom {
+    padding-bottom: calc(4rem + var(--sab, 0px));
   }
 }
 
@@ -364,4 +415,41 @@
     0 10px 24px rgba(0, 0, 0, 0.35),
     0 0 0 1px rgba(129, 140, 248, 0.25);
   border-color: rgba(129, 140, 248, 0.45);
+}
+
+/* ==================== 横竖屏媒体查询 ==================== */
+@media (orientation: portrait) {
+  :root {
+    --viewport-direction: column;
+  }
+
+  /* 竖屏时隐藏横向滚动条 */
+  body {
+    overflow-x: hidden;
+  }
+}
+
+@media (orientation: landscape) {
+  :root {
+    --viewport-direction: row;
+  }
+
+  /* 横屏时收窄安全区域顶部（避免刘海遮挡内容） */
+  body {
+    padding-top: min(var(--sat), 20px);
+    padding-bottom: min(var(--sab), 10px);
+  }
+}
+
+/* ==================== 小屏幕适配 ==================== */
+@media (max-width: 375px) {
+  :root {
+    --radius: 0.5rem;
+  }
+
+  /* 极小屏幕进一步收紧内边距 */
+  body {
+    padding-left: max(var(--sal), 8px);
+    padding-right: max(var(--sar), 8px);
+  }
 }

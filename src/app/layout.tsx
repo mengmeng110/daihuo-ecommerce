@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import GlobalProviders from "@/components/GlobalProviders";
+import MobileNav from "@/components/MobileNav";
+import MobileLayout from "@/components/MobileLayout";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,13 +16,14 @@ const geistMono = Geist_Mono({
 });
 
 /* ------------------------------------------------------------------ */
-/*  Viewport 配置 — 适配移动端                                          */
+/*  Viewport 配置 — 适配移动端 PWA                                     */
 /* ------------------------------------------------------------------ */
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 5,
-  userScalable: true,
+  viewportFit: "cover",
+  maximumScale: 1,
+  userScalable: false,
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#ffffff" },
     { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
@@ -28,7 +31,7 @@ export const viewport: Viewport = {
 };
 
 /* ------------------------------------------------------------------ */
-/*  Metadata 配置 — SEO + favicon + og:image                           */
+/*  Metadata 配置 — SEO + PWA + og:image                               */
 /* ------------------------------------------------------------------ */
 export const metadata: Metadata = {
   title: "带货剪手 - 电商带货短视频 AI 生成",
@@ -38,6 +41,12 @@ export const metadata: Metadata = {
     shortcut: "/favicon.ico",
     apple: "/favicon.ico",
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "带货剪手",
+  },
+  manifest: "/manifest.json",
   openGraph: {
     title: "带货剪手 - 电商带货短视频 AI 生成",
     description: "上传商品图，AI 生成脚本，一键生成带货短视频",
@@ -75,7 +84,10 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        <GlobalProviders>{children}</GlobalProviders>
+        <GlobalProviders>
+          <MobileLayout>{children}</MobileLayout>
+        </GlobalProviders>
+        <MobileNav />
       </body>
     </html>
   );
