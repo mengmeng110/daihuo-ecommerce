@@ -22,11 +22,12 @@ const MAX_FILE_SIZE = 20 * 1024 * 1024;
 
 // 上传商品图片
 export async function POST(req: NextRequest) {
-  const formData = await req.formData();
-  const files = formData.getAll("files") as File[];
-  const projectId = formData.get("projectId") as string;
+  try {
+    const formData = await req.formData();
+    const files = formData.getAll("files") as File[];
+    const projectId = formData.get("projectId") as string;
 
-  if (!files.length) {
+    if (!files.length) {
     return NextResponse.json({ error: "请上传至少一张图片" }, { status: 400 });
   }
 
@@ -83,5 +84,12 @@ export async function POST(req: NextRequest) {
     savedPaths.push(`/api/files/${projectId}/${fileName}`);
   }
 
-  return NextResponse.json({ paths: savedPaths });
+    return NextResponse.json({ paths: savedPaths });
+  } catch (error) {
+    console.error("上传失败:", error);
+    return NextResponse.json(
+      { error: "上传失败，请稍后重试" },
+      { status: 500 }
+    );
+  }
 }
