@@ -37,9 +37,9 @@ export const metadata: Metadata = {
   title: "萌萌的 - 电商带货短视频 AI 生成",
   description: "上传商品图，AI 生成脚本，一键生成带货短视频",
   icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon.ico",
-    apple: "/favicon.ico",
+    icon: "/icons/favicon.png",
+    shortcut: "/icons/favicon.png",
+    apple: "/icons/apple-touch-icon.png",
   },
   appleWebApp: {
     capable: true,
