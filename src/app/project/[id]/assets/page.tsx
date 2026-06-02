@@ -88,6 +88,11 @@ export default function AssetsPage() {
   // 读取用户配置的 LLM 信息
   const llm = useSettingsStore((s) => s.llm);
 
+  // 读取商品名
+  const productName = typeof window !== "undefined"
+    ? sessionStorage.getItem(`productName_${id}`) || ""
+    : "";
+
   // 调用真实生图 API
   const generateOne = useCallback(async (shotId: number) => {
     const asset = assets.find((a) => a.shotId === shotId);
@@ -99,6 +104,9 @@ export default function AssetsPage() {
 
     try {
       const baseUrl = (llm.baseUrl || "https://apihub.agnes-ai.com/v1").replace(/\/+$/, "");
+      // 生图 prompt 加上商品名，让图片和商品相关
+      const imagePrompt = asset.prompt || asset.description;
+      const fullPrompt = productName ? `${productName}，${imagePrompt}` : imagePrompt;
       const res = await fetch(`${baseUrl}/images/generations`, {
         method: "POST",
         headers: {
@@ -107,7 +115,7 @@ export default function AssetsPage() {
         },
         body: JSON.stringify({
           model: "agnes-image-2.0-flash",
-          prompt: asset.prompt || asset.description,
+          prompt: fullPrompt,
           n: 1,
           size: "1024x1024",
         }),
