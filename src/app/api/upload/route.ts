@@ -20,7 +20,7 @@ const ALLOWED_EXTENSIONS = new Set([
 /** 单文件最大大小（20MB） */
 const MAX_FILE_SIZE = 20 * 1024 * 1024;
 
-// 上传商品图片
+export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
