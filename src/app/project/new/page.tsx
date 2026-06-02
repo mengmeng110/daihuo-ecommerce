@@ -221,17 +221,44 @@ export default function NewProjectPage() {
         ? characters.find((c) => c.id === selectedCharacterId)
         : null;
 
-      // 直接调用 LLM API（绕过服务端路由）
-      const systemPrompt = "你是一位顶级电商短视频编导。请根据商品信息生成3个不同风格的带货脚本。每个脚本包含标题、总时长和分镜列表。每个分镜包含：shotId(编号)、type(类型:hook/pain_point/product_reveal/demo/social_proof/cta)、duration(秒)、description(画面描述)、camera(镜头说明)、voiceover(旁白文案)、visualSource(视觉来源)。请以JSON数组格式返回，不要加markdown包裹。";
+      // 风格名称映射
+      const styleMap: Record<string, string> = {
+        pain_point: "痛点营销",
+        scene: "场景营销",
+        comparison: "对比测评",
+        story: "讲故事",
+        live: "直播带货",
+      };
 
-      const userPrompt = `请为以下商品生成3个带货脚本（风格: ${scriptStyle}）：
+      const systemPrompt = `你是一个专业的电商短视频脚本生成器。
+你的任务是根据我提供的商品信息，生成1个高质量的带货视频脚本。
+
+你必须严格使用我给出的商品信息，不要自行替换或想象其他商品。
+如果信息不完整，用常识合理补充细节，但不要改变商品本身。
+
+请以JSON格式返回（不要markdown包裹），包含：
+- title: 脚本标题
+- totalDuration: 总时长（秒）
+- shots: 分镜数组，每个分镜包含：
+  - shotId: 编号
+  - type: 类型（hook开场/pain_point痛点/product_reveal产品展示/demo使用演示/social_proof信任背书/cta促单）
+  - duration: 时长（秒）
+  - description: 画面描述
+  - camera: 镜头说明
+  - voiceover: 旁白文案
+  - visualSource: 视觉来源`;
+
+      const userPrompt = `请为以下商品生成1个带货脚本（风格: ${styleMap[scriptStyle] || scriptStyle}）：
+
 商品名称: ${productName}
 品类: ${category}
 商品描述: ${sellingPoints}
 目标时长: ${duration}秒
 ${priceRange ? `价格区间: ${priceRange}` : ""}
 ${targetAudience.length ? `目标用户: ${targetAudience.join(",")}` : ""}
-${platforms.length ? `投放平台: ${platforms.join(",")}` : ""}`;
+${platforms.length ? `投放平台: ${platforms.join(",")}` : ""}
+
+请严格根据上面的商品信息生成脚本，不要自行替换商品名称。`;
 
       const llmRes = await fetch(llm.baseUrl.replace(/\/+$/, "") + "/chat/completions", {
         method: "POST",
