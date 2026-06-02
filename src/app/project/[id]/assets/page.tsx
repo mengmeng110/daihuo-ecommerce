@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useParams } from "next/navigation";
 import {LuArrowLeft, LuZap, LuCheck, LuCircleX, LuImage, LuArrowRight} from "react-icons/lu";
 import Link from "next/link";
@@ -23,12 +23,45 @@ interface AssetItem {
 
 // 模拟脚本分镜数据
 const initialAssets: AssetItem[] = [
-  { shotId: 1, type: "hook", duration: 3, description: "手持手机第一人称视角，快步走进房间", prompt: "First person POV walking into a bright modern room, slightly shaky handheld camera, cinematic", visualSource: "ai_generate", status: "pending" },
-  { shotId: 2, type: "pain_point", duration: 4, description: "桌上一堆廉价商品碎屑，手拿普通商品沾水后碎裂", prompt: "Close-up overhead shot of cheap product paper disintegrating in water on a clean white table", visualSource: "ai_generate", status: "pending" },
-  { shotId: 3, type: "product_reveal", duration: 3, description: "通用商品包装正面特写，缓慢推进", prompt: "", visualSource: "product_image", status: "done", thumbnailUrl: "" },
-  { shotId: 4, type: "demo", duration: 5, description: "手拿通用商品浸入水中，拉扯展示韧性", prompt: "Hands holding premium product paper submerged in clear water, pulling and stretching to show strength", visualSource: "ai_generate", status: "pending" },
-  { shotId: 5, type: "cta", duration: 3, description: "商品包装+价格标签+购物车图标", prompt: "", visualSource: "product_image", status: "done", thumbnailUrl: "" },
+  { shotId: 1, type: "hook", duration: 3, description: "通用商品展示", prompt: "", visualSource: "ai_generate", status: "pending" },
+  { shotId: 2, type: "pain_point", duration: 4, description: "通用痛点展示", prompt: "", visualSource: "ai_generate", status: "pending" },
+  { shotId: 3, type: "product_reveal", duration: 3, description: "通用产品展示", prompt: "", visualSource: "product_image", status: "done", thumbnailUrl: "" },
+  { shotId: 4, type: "demo", duration: 5, description: "通用演示", prompt: "", visualSource: "ai_generate", status: "pending" },
+  { shotId: 5, type: "cta", duration: 3, description: "通用转化引导", prompt: "", visualSource: "product_image", status: "done", thumbnailUrl: "" },
 ];
+
+// 从 sessionStorage 读取脚本数据并转换为 AssetItem 数组
+function getAssetsFromSessionStorage(id: string): AssetItem[] | null {
+  try {
+    if (typeof window === "undefined") return null;
+    const stored = sessionStorage.getItem(`scripts_${id}`);
+    if (!stored) return null;
+    const parsed = JSON.parse(stored);
+    // parsed 可能是 { shots: [...], title: "...", totalDuration: ... } 或直接是 [{ shots: [...] }]
+    let shots: any[] = [];
+    if (Array.isArray(parsed)) {
+      // 多个脚本，取第一个
+      const first = parsed[0];
+      if (first.shots) shots = first.shots;
+      else shots = parsed;
+    } else if (parsed.shots) {
+      shots = parsed.shots;
+    }
+    if (!shots.length) return null;
+
+    return shots.map((shot: any, index: number) => ({
+      shotId: shot.shotId || index + 1,
+      type: (shot.type as AssetItem["type"]) || "hook",
+      duration: shot.duration || 3,
+      description: shot.description || `分镜 ${index + 1}`,
+      prompt: shot.prompt || shot.description || "",
+      visualSource: "ai_generate" as const,
+      status: "pending" as const,
+    }));
+  } catch {
+    return null;
+  }
+}
 
 // 镜头类型标签
 const shotTypeLabels: Record<Shot["type"], { label: string; color: string }> = {
@@ -42,7 +75,10 @@ const shotTypeLabels: Record<Shot["type"], { label: string; color: string }> = {
 
 export default function AssetsPage() {
   const { id } = useParams<{ id: string }>();
-  const [assets, setAssets] = useState<AssetItem[]>(initialAssets);
+  const [assets, setAssets] = useState<AssetItem[]>(() => {
+    const stored = getAssetsFromSessionStorage(id);
+    return stored || initialAssets;
+  });
   const [isBatchGenerating, setIsBatchGenerating] = useState(false);
 
   const doneCount = assets.filter((a) => a.status === "done").length;
