@@ -53,6 +53,21 @@ const AI_PROVIDERS = [
     iconBg: "from-purple-500 to-pink-500",
   },
   {
+    key: "agnes",
+    name: "Agnes AI",
+    description: "Sapiens AI 旗下多模态 AI 平台，支持文本、图像、视频生成",
+    tip: "文本模型 agnes-2.0-flash 速度快、质量高，性价比优秀",
+    baseUrl: "https://apihub.agnes-ai.com/v1",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2L2 7l10 5 10-5-10-5z" />
+        <path d="M2 17l10 5 10-5" />
+        <path d="M2 12l10 5 10-5" />
+      </svg>
+    ),
+    iconBg: "from-amber-500 to-orange-500",
+  },
+  {
     key: "volcengine",
     name: "火山引擎",
     description: "字节跳动旗下云服务，提供豆包大模型和视频生成能力",
