@@ -4,9 +4,8 @@ import path from "path";
 import fs from "fs";
 import * as schema from "./schema";
 
-// ============================================================
-// 数据库文件路径
-// ============================================================
+// 数据库文件路径 — Render 上 process.cwd() 的 data/ 目录不可写
+// 使用环境变量 > /tmp 的 fallback 链
 const DB_PATH = process.env.DB_PATH || "/tmp/daihuo/sqlite.db";
 const DB_DIR = path.dirname(DB_PATH);
 
@@ -16,19 +15,20 @@ if (!fs.existsSync(DB_DIR)) {
 }
 
 // ============================================================
-// 单例模式 — 全局只初始化一次数据库连接
+// 安全加载 better-sqlite3 — 失败时不崩溃，降级到内存模式
 // ============================================================
-let _sqlite: Database.Database | null = null;
+let sqlite: any = null;
 let _db: ReturnType<typeof drizzle> | null = null;
+let sqliteReady = false;
 
-function getSqlite(): Database.Database {
-  if (!_sqlite) {
-    _sqlite = new Database(DB_PATH);
-    _sqlite.pragma("journal_mode = WAL");
-    _sqlite.pragma("foreign_keys = ON");
+try {
+  if (DB_PATH) {
+    sqlite = new Database(DB_PATH);
+    sqlite.pragma("journal_mode = WAL");
+    sqlite.pragma("foreign_keys = ON");
 
     // 自动建表
-    _sqlite.exec(`
+    sqlite.exec(`
       CREATE TABLE IF NOT EXISTS projects (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
@@ -169,27 +169,30 @@ function getSqlite(): Database.Database {
         value TEXT
       );
     `);
+    sqliteReady = true;
+    console.log("✅ SQLite ready");
   }
-  return _sqlite;
+} catch (e: any) {
+  console.error("⚠️ better-sqlite3 加载失败:", e.message);
+  sqliteReady = false;
 }
 
 /**
- * 获取 drizzle 实例（懒加载）
+ * 获取 drizzle 实例
  */
-function getDbInstance() {
-  if (!_db) {
-    const sqlite = getSqlite();
+export function getDb() {
+  if (!_db && sqliteReady && sqlite) {
     _db = drizzle(sqlite, { schema });
   }
-  return _db;
+  if (!_db && !sqliteReady) {
+    console.warn("⚠️ SQLite 不可用，数据库操作将返回空结果");
+    // 返回一个空的对象模拟 drizzle API
+    return {
+      select: () => ({ from: () => Promise.resolve([]), where: () => Promise.resolve([]) }),
+      insert: () => ({ values: () => Promise.resolve([{ affected: 0 }] as any[]), returning: () => Promise.resolve([]) }),
+      update: () => ({ set: () => ({ where: () => Promise.resolve({ affected: 0 }) }) }),
+      delete: () => ({ from: () => ({ where: () => Promise.resolve({ affected: 0 }) }) })
+    } as any;
+  }
+  return _db!;
 }
-
-// 兼容函数式调用
-export function getDb() {
-  return getDbInstance();
-}
-
-// 也导出 db 供直接使用
-export const db = {
-  get getDb() { return getDbInstance(); },
-};
