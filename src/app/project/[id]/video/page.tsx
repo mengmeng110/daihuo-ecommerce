@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
-import {LuArrowLeft, LuPlay, LuChevronDown, LuArrowRight} from "react-icons/lu";
+import {LuArrowLeft, LuPlay, LuChevronDown, LuArrowRight, LuLoader, LuExternalLink} from "react-icons/lu";
+import { useSettingsStore } from "@/lib/stores/settings-store";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -112,6 +113,8 @@ export default function VideoPage() {
   const [isComposing, setIsComposing] = useState(false);
   const [composeProgress, setComposeProgress] = useState(0);
   const [composeDone, setComposeDone] = useState(false);
+  const [videoUrl, setVideoUrl] = useState("");
+  const llm = useSettingsStore((s) => s.llm);
 
   const totalDuration = clips.reduce((sum, c) => sum + c.duration, 0);
 
@@ -124,22 +127,69 @@ export default function VideoPage() {
     );
   };
 
-  // 模拟合成过程
-  const startCompose = () => {
+  // 调用 Agnes 视频生成 API
+  const startCompose = async () => {
+    if (!llm.apiKey) return;
     setIsComposing(true);
     setComposeProgress(0);
+    setVideoUrl("");
 
-    const interval = setInterval(() => {
-      setComposeProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
+    try {
+      const baseUrl = (llm.baseUrl || "https://apihub.agnes-ai.com/v1").replace(/\/+$/, "");
+      const prompt = clips.map((c) => c.voiceover).filter(Boolean).join("，");
+
+      // 1. 提交视频生成任务
+      const submitRes = await fetch(`${baseUrl}/video/generations`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${llm.apiKey}`,
+        },
+        body: JSON.stringify({
+          model: "agnes-video-v2.0",
+          prompt: prompt || "电商产品展示视频",
+          n: 1,
+        }),
+      });
+      if (!submitRes.ok) throw new Error(`提交失败 ${submitRes.status}`);
+      const submitData = await submitRes.json();
+      const taskId = submitData.task_id || submitData.id;
+      if (!taskId) throw new Error("未获取到任务ID");
+
+      // 2. 轮询查询生成结果
+      let retries = 120;
+      while (retries > 0) {
+        await new Promise((r) => setTimeout(r, 2000));
+        const pollRes = await fetch(`${baseUrl}/video/generations/${taskId}`, {
+          headers: { Authorization: `Bearer ${llm.apiKey}` },
+        });
+        if (!pollRes.ok) continue;
+        const pollData = await pollRes.json();
+        const status = pollData.data?.status || pollData.status;
+        setComposeProgress((prev) => Math.min(prev + 5, 95));
+
+        if (status === "completed" || status === "SUCCESS") {
+          const url = pollData.data?.data?.remixed_from_video_id
+            || pollData.data?.data?.url
+            || pollData.data?.result_url
+            || `${baseUrl}/videos/${taskId}/content`;
+          setVideoUrl(url);
+          setComposeProgress(100);
           setIsComposing(false);
           setComposeDone(true);
-          return 100;
+          return;
         }
-        return prev + 2;
-      });
-    }, 100);
+        if (status === "failed" || status === "FAILED") {
+          throw new Error(pollData.data?.data?.error || "视频生成失败");
+        }
+        retries--;
+      }
+      throw new Error("视频生成超时");
+    } catch (e: any) {
+      console.error("视频生成失败:", e);
+      setIsComposing(false);
+      setComposeProgress(0);
+    }
   };
 
   return (
@@ -416,12 +466,25 @@ export default function VideoPage() {
               </Button>
 
               {composeDone && (
-                <Link href={`/project/${id}/export`}>
-                  <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white">
-                    下一步：导出视频
-                    <LuArrowRight className="w-4 h-4 ml-1" />
-                  </Button>
-                </Link>
+                <>
+                  {videoUrl && (
+                    <div className="mt-4 rounded-lg overflow-hidden bg-black/5">
+                      <video
+                        src={videoUrl}
+                        controls
+                        className="w-full max-h-[400px] object-contain"
+                        autoPlay
+                        playsInline
+                      />
+                    </div>
+                  )}
+                  <Link href={`/project/${id}/export`}>
+                    <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white">
+                      下一步：导出视频
+                      <LuArrowRight className="w-4 h-4 ml-1" />
+                    </Button>
+                  </Link>
+                </>
               )}
             </div>
           </div>
