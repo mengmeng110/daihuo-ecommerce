@@ -5,6 +5,9 @@ import { generateScript, analyzeProduct } from "@/lib/script-engine/generator";
 import type { ScriptStyleType } from "@/lib/script-engine/prompts";
 import type { ProductCategory } from "@/lib/script-engine/templates";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 /** 将本地图片路径转为 base64 data URI，供 LLM 视觉模型使用 */
 async function imagePathToBase64(imagePath: string): Promise<string> {
   // 已经是完整 URL 或 base64，直接返回
