@@ -76,23 +76,22 @@ const styleLabels: Record<string, string> = {
 export default function ScriptPage() {
   const { id } = useParams<{ id: string }>();
   const [selectedScript, setSelectedScript] = useState(0);
-  // 优先从 sessionStorage 读取生成的脚本（从新建页面跳转而来），失败则用 mock 数据
-  const getStoredScripts = () => {
-    if (typeof window !== "undefined") {
-      try {
-        const stored = sessionStorage.getItem(`scripts_${params.id}`);
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          // 读取后清除，防止刷新后重复使用
-          sessionStorage.removeItem(`scripts_${params.id}`);
-          return parsed;
-        }
-      } catch {}
-    }
-    return mockScripts;
-  };
-  const [scripts] = useState(getStoredScripts);
+  const [scripts, setScripts] = useState(mockScripts);
   const [isGenerating] = useState(false);
+
+  useEffect(() => {
+    // 优先从 sessionStorage 读取生成的脚本（从新建页面跳转而来）
+    try {
+      const stored = sessionStorage.getItem(`scripts_${id}`);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        sessionStorage.removeItem(`scripts_${id}`);
+        setScripts(parsed);
+        return;
+      }
+    } catch {}
+    setScripts(mockScripts);
+  }, [id]);
   const currentScript = scripts[selectedScript];
 
   // 模板相关状态
