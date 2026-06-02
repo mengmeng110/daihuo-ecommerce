@@ -2,11 +2,11 @@ services:
   - type: web
     name: daihuo-jianshou
     env: node
-    buildCommand: npm install && npm run build
-    startCommand: npm start
+    buildCommand: npx shadcn@latest add --yes; pnpm install --frozen-lockfile && pnpm run build
+    startCommand: pnpm start
     envVars:
       - key: NODE_VERSION
-        value: 20
+        value: 22
       - key: PORT
         value: 3000
       - key: HOST
