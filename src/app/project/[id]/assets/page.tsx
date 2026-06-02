@@ -208,7 +208,7 @@ export default function AssetsPage() {
         {/* 素材列表 */}
         <div className="space-y-4">
           {assets.map((asset) => {
-            const typeInfo = shotTypeLabels[asset.type];
+            const typeInfo = shotTypeLabels[asset.type] || { label: "其他", color: "bg-gray-500/20 text-gray-400", bg: "bg-gray-500/20" };
             return (
               <Card key={asset.shotId} className="glass-card overflow-hidden">
                 <CardContent className="p-0">

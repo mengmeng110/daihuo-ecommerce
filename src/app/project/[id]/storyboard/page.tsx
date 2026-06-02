@@ -327,7 +327,7 @@ function ShotPreviewModal({
   index: number;
   onClose: () => void;
 }) {
-  const typeInfo = shotTypeLabels[shot.type];
+  const typeInfo = shotTypeLabels[shot.type] || { label: "其他", color: "bg-gray-500/20 text-gray-400", bg: "bg-gray-500/20" };
   const transInfo = transitionLabels[shot.transition];
 
   return (
@@ -640,7 +640,7 @@ export default function StoryboardPage() {
             </div>
             <div className="flex gap-1 h-8 rounded-lg overflow-hidden">
               {shots.map((shot, i) => {
-                const typeInfo = shotTypeLabels[shot.type];
+                const typeInfo = shotTypeLabels[shot.type] || { label: "其他", color: "bg-gray-500/20 text-gray-400", bg: "bg-gray-500/20" };
                 return (
                   <button
                     key={shot.shotId}
@@ -687,7 +687,7 @@ export default function StoryboardPage() {
         {/* 分镜卡片列表 */}
         <div className="space-y-3">
           {shots.map((shot, index) => {
-            const typeInfo = shotTypeLabels[shot.type];
+            const typeInfo = shotTypeLabels[shot.type] || { label: "其他", color: "bg-gray-500/20 text-gray-400", bg: "bg-gray-500/20" };
             const transInfo = transitionLabels[shot.transition];
             const vsInfo = visualSourceLabels[shot.visualSource];
             const isDragging = dragIndex === index;

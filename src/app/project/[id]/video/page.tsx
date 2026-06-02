@@ -166,7 +166,7 @@ export default function VideoPage() {
 
             <div className="space-y-1">
               {clips.map((clip, index) => {
-                const typeInfo = shotTypeLabels[clip.type];
+                const typeInfo = shotTypeLabels[clip.type] || { label: "其他", color: "bg-gray-500/20 text-gray-400", bg: "bg-gray-500/20" };
                 return (
                   <div key={clip.shotId}>
                     {/* 片段卡片 */}
