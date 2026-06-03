@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useParams } from "next/navigation";
 import {LuArrowLeft, LuZap, LuCheck, LuCircleX, LuImage, LuArrowRight, LuLoader} from "react-icons/lu";
 import Link from "next/link";
@@ -96,7 +96,20 @@ export default function AssetsPage() {
     ? sessionStorage.getItem(`productImage_${id}`) || ""
     : "";
 
-  // 调用真实生图 API，所有分镜都以上传的商品图为参考
+  // 如果有商品图，作为所有分镜的默认缩略图
+  useEffect(() => {
+    if (productImageBase64 && !assets[0]?.thumbnailUrl) {
+      setAssets((prev) =>
+        prev.map((a) => ({
+          ...a,
+          status: "done" as const,
+          thumbnailUrl: productImageBase64,
+        }))
+      );
+    }
+  }, []);
+
+  // 调用真实生图 API（尝试基于商品图生成创意场景），所有分镜都以上传的商品图为参考
   const generateOne = useCallback(async (shotId: number) => {
     const asset = assets.find((a) => a.shotId === shotId);
     if (!asset || !llm.apiKey) return;
@@ -111,14 +124,17 @@ export default function AssetsPage() {
       const fullPrompt = productName ? `${productName}，${imagePrompt}` : imagePrompt;
 
       const body: any = {
-        model: "agnes-image-2.0-flash",
+        model: "agnes-image-2.1-flash",
         prompt: fullPrompt,
-        n: 1,
         size: "1024x1024",
       };
-      // 所有分镜都以上传的商品图为参考生成
+      // 图生图：把商品图URL传给 extra_body.image（数组格式）
+      // 注意：这是 base64 data URL，可以正常传给 OpenAI 兼容 API
       if (productImageBase64) {
-        body.image = productImageBase64;
+        body.extra_body = {
+          image: [productImageBase64],
+          response_format: "url",
+        };
       }
       const res = await fetch(`${baseUrl}/images/generations`, {
         method: "POST",

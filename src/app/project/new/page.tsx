@@ -213,6 +213,10 @@ export default function NewProjectPage() {
         });
         paths.push(dataUrl);
       }
+      // 保存第一张商品图作为后续图生图的参考
+      if (paths[0]) {
+        sessionStorage.setItem(`productImage_${project.id}`, paths[0]);
+      }
 
       // 第3步：生成脚本
       setProgress({ step: "generating", percent: 60, message: "AI 正在分析商品并生成脚本..." });
