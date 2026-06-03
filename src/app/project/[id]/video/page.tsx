@@ -138,7 +138,10 @@ export default function VideoPage() {
 
     try {
       const baseUrl = (llm.baseUrl || "https://apihub.agnes-ai.com/v1").replace(/\/+$/, "");
+      const fullUrl = baseUrl + '/videos';
       console.log("[视频] baseUrl:", baseUrl, "apiKey:", llm.apiKey ? llm.apiKey.slice(0, 10) + '...' : '未设置');
+      console.log("[视频] 完整URL:", fullUrl);
+      alert(`调试信息:\n\nbaseUrl: ${baseUrl}\napiKey前10位: ${llm.apiKey ? llm.apiKey.slice(0, 10) + '...' : '未设置'}\n\n完整URL: ${fullUrl}\n\n请截图发送给我`);
       let completedCount = 0;
 
       // 逐个分镜生成
@@ -489,6 +492,15 @@ export default function VideoPage() {
 
             {/* 合成按钮 */}
             <div className="space-y-3">
+              {/* 调试信息 */}
+              {!isComposing && !composeDone && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 space-y-1">
+                  <div><strong>baseUrl:</strong> {llm.baseUrl || "https://apihub.agnes-ai.com/v1"}</div>
+                  <div><strong>apiKey:</strong> {llm.apiKey ? llm.apiKey.slice(0, 10) + '...' : '未设置'}</div>
+                  <div><strong>视频端点:</strong> {(llm.baseUrl || "https://apihub.agnes-ai.com/v1").replace(/\/+$/, "")}/videos</div>
+                </div>
+              )}
+
               {/* 合成进度 */}
               {(isComposing || composeDone) && (
                 <div>
