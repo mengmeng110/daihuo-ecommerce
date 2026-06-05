@@ -205,6 +205,49 @@ export default function HomePage() {
           </p>
         </div>
 
+        {/* 项目统计卡片 */}
+        <div className="grid grid-cols-3 gap-3 mb-6">
+          <Card className="glass-card">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                  <LuFilm className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{stats.total}</p>
+                  <p className="text-xs text-muted-foreground">总项目</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="glass-card">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-500/10">
+                  <LuLoader className="w-4 h-4 text-blue-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{stats.inProgress}</p>
+                  <p className="text-xs text-muted-foreground">进行中</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="glass-card">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-green-500/10">
+                  <LuCircleCheck className="w-4 h-4 text-green-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{stats.completed}</p>
+                  <p className="text-xs text-muted-foreground">已完成</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* 系统状态检测横幅 */}
         {!isSystemReady && (
           <Link href="/settings">
