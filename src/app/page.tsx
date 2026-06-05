@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
 import {
   LuSettings, LuPlus, LuVideo, LuFilm, LuPackage,
@@ -19,7 +19,6 @@ import { useConfirm } from "@/components/ui/dialog";
 import { useSettingsStore } from "@/lib/stores/settings-store";
 import { useProjectStore } from "@/lib/stores/project-store";
 import type { ProjectStatus, SortField, SortOrder } from "@/lib/stores/project-store";
-import { useDebounce } from "@/lib/hooks/useDebounce";
 
 const statusMap: Record<string, { label: string; color: string }> = {
   draft: { label: "草稿", color: "bg-zinc-500/20 text-zinc-400" },
@@ -66,15 +65,6 @@ function formatRelativeTime(date: Date | string): string {
   return new Date(date).toLocaleDateString("zh-CN");
 }
 
-/* 格式化日期 */
-function formatDate(date: Date | string): string {
-  return new Date(date).toLocaleDateString("zh-CN", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-}
-
 export default function HomePage() {
   const {
     projects, removeProject,
@@ -85,30 +75,9 @@ export default function HomePage() {
 
   const { confirm, ConfirmDialog } = useConfirm();
 
-  // 本地搜索输入（受控），通过 useDebounce 延迟同步到 store
-  const [searchInput, setSearchInput] = useState(searchQuery);
-  const debouncedSearch = useDebounce(searchInput, 300);
-
-  useEffect(() => {
-    setSearchQuery(debouncedSearch);
-  }, [debouncedSearch, setSearchQuery]);
-
-  // 系统状态检测
-  const isLLMConfigured = llm.apiKey.length > 0;
-  const hasAnyProvider = Object.values(providers).some((p: any) => p.enabled && p.apiKey.length > 0);
-  const isSystemReady = isLLMConfigured && hasAnyProvider;
-
-  // 项目统计
-  const stats = useMemo(() => {
-    const total = projects.length;
-    const completed = projects.filter(p => p.status === "done").length;
-    const inProgress = projects.filter(p => p.status !== "done").length;
-    return { total, completed, inProgress };
-  }, [projects]);
-
   // 筛选后的项目列表（利用 store 的筛选/排序逻辑）
   const filteredProjects = useMemo(() => {
-    const q = (debouncedSearch || "").toLowerCase().trim();
+    const q = (searchQuery || "").toLowerCase().trim();
     let list = [...projects];
 
     // 搜索过滤
@@ -147,7 +116,20 @@ export default function HomePage() {
     });
 
     return list;
-  }, [projects, debouncedSearch, filterStatus, sortOption]);
+  }, [projects, searchQuery, filterStatus, sortOption]);
+
+  // 系统状态检测
+  const isLLMConfigured = llm.apiKey.length > 0;
+  const hasAnyProvider = Object.values(providers).some((p: any) => p.enabled && p.apiKey.length > 0);
+  const isSystemReady = isLLMConfigured && hasAnyProvider;
+
+  // 项目统计
+  const stats = useMemo(() => {
+    const total = projects.length;
+    const completed = projects.filter(p => p.status === "done").length;
+    const inProgress = projects.filter(p => p.status !== "done").length;
+    return { total, completed, inProgress };
+  }, [projects]);
 
   // 删除项目
   const handleDelete = useCallback(
@@ -172,6 +154,11 @@ export default function HomePage() {
   const currentSortLabel = sortOptions.find(
     o => o.field === sortOption.field && o.order === sortOption.order
   )?.label || "最近更新";
+
+  // 搜索框值直接绑定 store
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  }, [setSearchQuery]);
 
   return (
     <div className="min-h-screen grid-bg">
@@ -338,14 +325,14 @@ export default function HomePage() {
           <div className="relative mb-4">
             <LuSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
             <Input
-              value={searchInput}
-              onChange={e => setSearchInput(e.target.value)}
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
               placeholder="搜索项目名称..."
               className="pl-9 pr-9 h-9"
             />
-            {searchInput && (
+            {searchQuery && (
               <button
-                onClick={() => setSearchInput("")}
+                onClick={() => setSearchQuery("")}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
               >
                 <LuX className="w-4 h-4" />
@@ -473,7 +460,7 @@ export default function HomePage() {
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    setSearchInput("");
+                    setSearchQuery("");
                     setFilterStatus("all");
                   }}
                 >
@@ -526,7 +513,7 @@ export default function HomePage() {
                               <span>{formatRelativeTime(project.updatedAt)}</span>
                             </div>
                             <p className="text-[11px] text-muted-foreground/60 mt-0.5">
-                              创建于 {formatDate(project.createdAt)}
+                              创建于 {formatRelativeTime(project.createdAt)}
                             </p>
                           </div>
                           <button
@@ -549,7 +536,7 @@ export default function HomePage() {
           {projects.length > 0 && filteredProjects.length > 0 && (
             <p className="text-xs text-muted-foreground text-center mt-4">
               共 {projects.length} 个项目
-              {filterStatus !== "all" || searchInput
+              {filterStatus !== "all" || searchQuery
                 ? `，当前显示 ${filteredProjects.length} 个`
                 : ""}
             </p>
