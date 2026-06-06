@@ -169,7 +169,6 @@ export default function ScriptPage() {
   const { addTemplate } = useTemplateStore();
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [templateName, setTemplateName] = useState("");
-  const [savedTip, setSavedTip] = useState(false);
 
   const handleSaveAsTemplate = useCallback(() => {
     setTemplateName("");
