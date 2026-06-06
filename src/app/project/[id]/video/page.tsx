@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
-import {LuArrowLeft, LuPlay, LuChevronDown, LuArrowRight, LuLoader, LuExternalLink} from "react-icons/lu";
+import {LuArrowLeft, LuPlay, LuChevronDown, LuArrowRight, LuLoader, LuExternalLink, LuDownload} from "react-icons/lu";
 import { useSettingsStore } from "@/lib/stores/settings-store";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
@@ -129,6 +129,24 @@ export default function VideoPage() {
         c.shotId === shotId ? { ...c, transition: transition as VideoClipItem["transition"] } : c
       )
     );
+  };
+
+  // 下载单个分镜视频
+  const downloadSingleClip = async (clipUrl: string, shotId: number) => {
+    try {
+      const res = await fetch(clipUrl);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `shot_${String(shotId).padStart(2, "0")}.mp4`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      window.open(clipUrl, "_blank");
+    }
   };
 
   // 逐分镜生成视频
@@ -372,6 +390,17 @@ export default function VideoPage() {
                           <span className="text-sm font-bold text-muted-foreground/30 shrink-0">
                             {String(clip.shotId).padStart(2, "0")}
                           </span>
+
+                          {/* 下载单个分镜按钮 */}
+                          {clip.url && (
+                            <button
+                              className="p-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors shrink-0"
+                              onClick={() => downloadSingleClip(clip.url!, clip.shotId)}
+                              title="下载此分镜视频"
+                            >
+                              <LuDownload className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </CardContent>
                     </Card>
