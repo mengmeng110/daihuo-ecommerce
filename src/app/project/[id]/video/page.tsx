@@ -117,6 +117,7 @@ export default function VideoPage() {
   const [composeProgress, setComposeProgress] = useState(0);
   const [composeDone, setComposeDone] = useState(false);
   const [composeError, setComposeError] = useState<string | null>(null);
+  const [selectedVideoUrl, setSelectedVideoUrl] = useState<string | null>(null);
   const llm = useSettingsStore((s) => s.llm);
 
   const totalDuration = clips.reduce((sum, c) => sum + c.duration, 0);
@@ -333,7 +334,10 @@ export default function VideoPage() {
                       <CardContent className="p-4">
                         <div className="flex items-center gap-4">
                           {/* 缩略图/视频 */}
-                          <div className="w-20 h-14 bg-muted/30 rounded-md shrink-0 flex items-center justify-center border border-border/30 overflow-hidden">
+                          <div 
+                            className="w-20 h-14 bg-muted/30 rounded-md shrink-0 flex items-center justify-center border border-border/30 overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all"
+                            onClick={() => clip.url && setSelectedVideoUrl(clip.url)}
+                          >
                             {clip.url ? (
                               <video src={clip.url} controls className="w-full h-full object-cover" />
                             ) : clip.status === "generating" ? (
@@ -594,6 +598,30 @@ export default function VideoPage() {
           </div>
         </div>
       </main>
+
+      {/* 视频弹窗 */}
+      {selectedVideoUrl && (
+        <div 
+          className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setSelectedVideoUrl(null)}
+        >
+          <div className="relative max-w-3xl w-full" onClick={(e) => e.stopPropagation()}>
+            <button
+              className="absolute -top-10 right-0 text-white text-2xl hover:text-gray-300"
+              onClick={() => setSelectedVideoUrl(null)}
+            >
+              ✕
+            </button>
+            <video
+              src={selectedVideoUrl}
+              controls
+              autoPlay
+              className="w-full rounded-lg"
+              style={{ maxHeight: '80vh' }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
