@@ -54,6 +54,18 @@ const mockScripts = [
       { shotId: 5, type: "cta" as const, duration: 2, description: "商品展示+下单引导", camera: "固定", visualSource: "product_image" as const, transition: "direct_concat" as const, voiceover: "姐妹们快囤起来！", prompt: "" },
     ],
   },
+  {
+    id: "s4",
+    title: "商品展示",
+    styleType: "product_showcase",
+    totalDuration: 18,
+    shots: [
+      { shotId: 1, type: "hook" as const, duration: 3, description: "镜头从商品底部缓缓上推，聚焦在商品整体包装上，背景纯净明亮", camera: "缓慢上推", visualSource: "product_image" as const, transition: "ai_start_end" as const, voiceover: "这就是你一直在找的好商品！", prompt: "Slow push-up shot of product packaging, clean bright background, minimalist aesthetic, professional product photography lighting" },
+      { shotId: 2, type: "product_reveal" as const, duration: 4, description: "商品特写展示，镜头环绕半圈展现细节，光线均匀通透", camera: "环绕展示", visualSource: "product_image" as const, transition: "ai_start_end" as const, voiceover: "高品质材质，每一个细节都经得起放大镜的审视", prompt: "Close-up product showcase with gentle orbit camera movement around the product, bright even lighting highlighting details, premium texture clearly visible" },
+      { shotId: 3, type: "demo" as const, duration: 5, description: "手持商品进行展示，自然光线下多角度呈现", camera: "手持跟拍", visualSource: "product_image" as const, transition: "ai_start_end" as const, voiceover: "拿到手你就知道，这质感绝对对得起价格", prompt: "Hand holding the product in natural light, rotating to show multiple angles, casual authentic vibe, lifestyle photography style" },
+      { shotId: 4, type: "cta" as const, duration: 3, description: "商品全景+价格信息+购买引导", camera: "固定", visualSource: "product_image" as const, transition: "direct_concat" as const, voiceover: "点击链接立即购买，今天下单还有惊喜！" },
+    ],
+  },
 ];
 
 // 镜头类型标签
@@ -71,6 +83,7 @@ const styleLabels: Record<string, string> = {
   scene: "场景安利",
   comparison: "对比测评",
   story: "剧情故事",
+  product_showcase: "商品展示",
 };
 
 export default function ScriptPage() {
@@ -176,12 +189,16 @@ export default function ScriptPage() {
   }, []);
 
   const handleRegenerate = useCallback(async () => {
+    if (!currentScript) return;
     setIsGenerating(true);
     try {
       const response = await fetch("/api/ai/script/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectId: id }),
+        body: JSON.stringify({
+          projectId: id,
+          style: currentScript.styleType,
+        }),
       });
       if (!response.ok) throw new Error("生成失败");
       const data = await response.json();

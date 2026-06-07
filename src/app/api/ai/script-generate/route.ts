@@ -9,7 +9,8 @@ type ScriptStyle =
   | "scene"
   | "comparison"
   | "story"
-  | "live";
+  | "live"
+  | "product_showcase";
 
 /** LLM 配置（兼容 OpenAI 格式） */
 interface LLMConfig {
@@ -26,6 +27,7 @@ const STYLE_NAME_MAP: Record<ScriptStyle, string> = {
   comparison: "对比测评",
   story: "剧情故事",
   live: "直播口播",
+  product_showcase: "商品展示",
 };
 
 const VALID_STYLES = Object.keys(STYLE_NAME_MAP) as ScriptStyle[];
@@ -74,6 +76,16 @@ const STYLE_DIRECTIVES: Record<ScriptStyle, string> = {
 - 价格对比要狠："外面卖XXX，今天直播间只要XX！"
 - 逼单要猛："最后XX单！""3、2、1上链接！"
 情绪曲线：热场 → 兴奋 → 种草 → 激动 → 疯抢下单`,
+
+  product_showcase: `【风格：商品展示型】
+结构：商品全景亮相 → 细节特写展示 → 材质/工艺讲解 → 使用场景展示 → 引导购买
+- 开场直接展示商品全貌，干净明亮的背景，突出商品质感
+- 分镜头多角度展示：正面、侧面、细节、材质纹理
+- 用专业但易懂的语言讲解材质、工艺、设计亮点
+- 搭配使用场景，让观众想象拥有后的体验
+- 强调视觉冲击力和商品的高级感
+- 结尾自然引导购买，强调品质与性价比
+情绪曲线：惊艳 → 好奇 → 信任 → 向往 → 心动下单`,
 };
 
 // ==================== System Prompt ====================
